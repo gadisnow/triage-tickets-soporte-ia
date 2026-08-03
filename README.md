@@ -32,7 +32,7 @@ Punto de control humano (HITL): los tickets clasificados con `Urgencia_IA = Alta
 
 ## 4. Estructura de datos (Airtable)
 
-Base: **Soporte - Sistema Triage IA** — [Ver en modo lectura](PEGAR_LINK_SHARED_VIEW_ACA)
+Base: **Soporte - Sistema Triage IA** — [Ver en modo lectura]([PEGAR_LINK_SHARED_VIEW_ACA](https://airtable.com/applOlsjUbjmCJWc5/shrLQtEXPIbOI5r7u))
 
 ### Tabla `Tickets`
 | Campo | Tipo | Descripción |
@@ -93,8 +93,7 @@ Resumen: se usa **GPT-4o-mini** para la clasificación (tarea simple y estructur
 
 ## 7. Dashboard de control
 
-[Ver dashboard público](PEGAR_LINK_DASHBOARD_ACA) — vista compartida de Airtable con KPIs de tickets procesados, distribución por categoría/urgencia y tasa de errores.
-
+El dashboard interno (KPIs de tickets por estado/categoría/urgencia y tasa de errores) está construido en Airtable Interfaces. Su publicación pública requiere el plan Team de Airtable (en trámite). Mientras tanto, los mismos datos son consultables en la vista de solo lectura enlazada en la sección 4.
 ## 8. Evidencias
 
 - `evidencia_hoppscotch_200ok.png` — prueba del webhook respondiendo 200 OK
