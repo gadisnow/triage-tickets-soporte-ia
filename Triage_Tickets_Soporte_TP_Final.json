@@ -1,0 +1,616 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nuevo-ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1328,
+        192
+      ],
+      "id": "acf55e9f-057a-4b17-8908-ceb5ecd123cb",
+      "name": "Webhook",
+      "webhookId": "3d335e06-b301-4023-b851-cd9899e61035"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "applOlsjUbjmCJWc5",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Cliente_Nombre": "={{ $json.body.cliente_nombre }}",
+            "Cliente_Email": "={{ $json.body.cliente_email }}",
+            "Mensaje_Original": "={{ $json.body.mensaje }}",
+            "Estado": "Pendiente"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -1072,
+        192
+      ],
+      "id": "db36291a-2410-4008-98a0-123bee71c6de",
+      "name": "Create a record",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "applOlsjUbjmCJWc5",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Create a record').item.json.id }}",
+            "Categoria_IA": "={{ JSON.parse($json.content[0].text.replace(/```json\\n?/,'').replace(/```/,'').trim()).categoria }}",
+            "Urgencia_IA": "={{ JSON.parse($json.content[0].text.replace(/```json\\n?/,'').replace(/```/,'').trim()).urgencia }}",
+            "Estado": "Procesado por IA",
+            "Fecha_Procesado": "={{ $now.toFormat('yyyy-MM-dd') }}",
+            "Resumen_IA": "={{ JSON.parse($json.content[0].text.replace(/```json\\n?/,'').replace(/```/,'').trim()).resumen }}",
+            "Area_Asignada": "={{ (() => { const p = JSON.parse($json.content[0].text.replace(/```json\\n?/,'').replace(/```/,'').trim()); return p.area_asignada === 'Soporte Técnico' ? ['recdfMWI49mEX4vrU'] : p.area_asignada === 'Facturación' ? ['recTfCIzwnqs2VvPm'] : ['recTbeYtWn7cGJgQj']; })() }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": []
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -432,
+        160
+      ],
+      "id": "e2ddc8a3-4911-4be3-a24f-a95ad93e4448",
+      "name": "Update record",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.fields.Urgencia_IA }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "Alta"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "id": "2a3cbc0e-4e91-44e2-89ba-2ea51f94dcda",
+      "name": "IF Urgencia Alta",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -192,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "todo-jorgeriosia"
+        },
+        "message": "=🚨 Ticket de *Urgencia Alta* requiere aprobacion antes de notificar al area correspondiente.\n\n*Cliente:* {{ $('Create a record').item.json.fields.Cliente_Nombre }}\n*Categoria:* {{ $json.fields.Categoria_IA }}\n*Resumen:* {{ $json.fields.Resumen_IA }}\n\n¿Aprobas notificar al area correspondiente?",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Aprobar",
+            "disapproveLabel": "Rechazar"
+          }
+        },
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 24
+            }
+          }
+        }
+      },
+      "id": "0829fa20-47e2-4210-ac84-bcaa6c90d5e7",
+      "name": "Slack Aprobacion HITL",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "1aa2a4fc-7683-4984-bbf1-6a6033ed6415"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "applOlsjUbjmCJWc5",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "value": {
+            "Aprobado_Por": "={{ $json.data.approved ? 'Aprobado via Slack HITL' : 'Rechazado via Slack HITL' }}",
+            "Estado": "={{ $json.data.approved ? 'Aprobado' : 'Pendiente' }}",
+            "id": "={{ $('Create a record').item.json.id }}"
+          }
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "id": "cd3bccf1-5937-4a6f-b640-15d833adab15",
+      "name": "Update Estado Post-Aprobacion",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "applOlsjUbjmCJWc5",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "value": {
+            "Estado": "Aprobado",
+            "id": "={{ $('Create a record').item.json.id }}"
+          }
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "id": "ae038eb3-2226-4a08-ab58-ba0a761b0bd7",
+      "name": "Update Estado Auto",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"error\",\n  \"message\": \"Ocurrio un error procesando el ticket. Fue registrado para revision.\"\n}",
+        "options": {}
+      },
+      "id": "9b64391b-aef5-418b-8c7d-6d3fa61831be",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        16,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "applOlsjUbjmCJWc5",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Errores",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Detalle": "={{ $json.error ? (typeof $json.error === 'string' ? $json.error : $json.error.message) : 'Error no especificado' }}",
+            "Tipo_Error": "={{ (() => { const msg = ($json.error ? (typeof $json.error === 'string' ? $json.error : $json.error.message) : '').toLowerCase(); if (msg.includes('timeout')) return 'Timeout'; if (msg.includes('bad request') || msg.includes('required') || msg.includes('missing')) return 'Datos Faltantes'; if (msg.includes('anthropic') || msg.includes('claude') || msg.includes('model') || msg.includes('rate')) return 'API IA'; return 'Otro'; })() }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        -608,
+        480
+      ],
+      "id": "3cbce206-a4ef-4947-862d-02a5ccb472a7",
+      "name": "Log Error"
+    },
+    {
+      "parameters": {
+        "base": {
+          "__rl": true,
+          "value": "applOlsjUbjmCJWc5",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Areas",
+          "mode": "name"
+        },
+        "id": "={{ $('Update record').item.json.fields.Area_Asignada[0] }}",
+        "options": {}
+      },
+      "id": "96737670-2459-42e3-bd2b-03310bbe3357",
+      "name": "Buscar Canal del Area",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $json.fields.Slack_Channel_ID }}"
+        },
+        "text": "=✅ Ticket procesado y aprobado.\n\n*Cliente:* {{ $('Create a record').item.json.fields.Cliente_Nombre }}\n*Categoria:* {{ $('Update record').item.json.fields.Categoria_IA }}\n*Urgencia:* {{ $('Update record').item.json.fields.Urgencia_IA }}\n*Resumen:* {{ $('Update record').item.json.fields.Resumen_IA }}\n\nRevisar y dar seguimiento con el cliente.",
+        "otherOptions": {}
+      },
+      "id": "c946607d-d2d0-44d8-94ef-84323d31b370",
+      "name": "Notificar al Area",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        720,
+        176
+      ],
+      "webhookId": "bc199290-a640-49e8-abe7-6b803b1ff80c"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "applOlsjUbjmCJWc5",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "value": {
+            "Slack_Thread_ID": "={{ $json.message.ts }}",
+            "id": "={{ $('Create a record').item.json.id }}"
+          }
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "id": "f01a361e-0bb4-4fdb-9937-08aeb5e6c0aa",
+      "name": "Guardar Thread ID",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"recibido\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1088,
+        176
+      ],
+      "id": "95471213-85d0-42de-8b70-b3c4852bc8ae",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "value": "claude-haiku-4-5-20251001"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $('Webhook').item.json.body.mensaje }}"
+            }
+          ]
+        },
+        "options": {
+          "includeMergedResponse": true,
+          "system": "Sos un clasificador de tickets de soporte técnico. Analizá el mensaje del cliente y respondé ÚNICAMENTE con un JSON válido, sin texto adicional, con este formato exacto:\n{\n  \"categoria\": \"Bug Crítico\" | \"Duda Facturación\" | \"Feature Request\" | \"Otro\",\n  \"urgencia\": \"Alta\" | \"Media\" | \"Baja\",\n  \"resumen\": \"resumen de una oración del problema\",\n  \"area_asignada\": \"Soporte Técnico\" | \"Facturación\" | \"Producto\"\n}\nNo agregues explicaciones, backticks, ni markdown. Solo el JSON.",
+          "maxTokens": 300,
+          "temperature": 0
+        }
+      },
+      "id": "bfb2629b-1c6f-44c9-ad46-f3db9448af94",
+      "name": "Message a model",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        -816,
+        176
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "jorgerios.estudio@gmail.com",
+        "subject": "=🚨 Error en Triage Tickets - {{ $json.fields.Tipo_Error }}",
+        "message": "=<h3>⚠️ Error en el sistema de Triage de Tickets</h3><p><b>ID del Error:</b> {{ $json.fields.Error_ID }}</p><p><b>Tipo:</b> {{ $json.fields.Tipo_Error }}</p><p><b>Detalle:</b> {{ $json.fields.Detalle }}</p><p><b>Fecha:</b> {{ $json.fields.Fecha }}</p><p>Revisar el registro completo en la tabla <i>Errores</i> de Airtable.</p>",
+        "options": {}
+      },
+      "id": "acc3da3a-4b12-4353-93b2-4a043eb7d91b",
+      "name": "Notificar Error por Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        480
+      ],
+      "webhookId": "3df58da6-295c-40d6-9f73-7318681a21d4"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record": {
+      "main": [
+        [
+          {
+            "node": "IF Urgencia Alta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Urgencia Alta": {
+      "main": [
+        [
+          {
+            "node": "Slack Aprobacion HITL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Estado Auto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Aprobacion HITL": {
+      "main": [
+        [
+          {
+            "node": "Update Estado Post-Aprobacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Estado Post-Aprobacion": {
+      "main": [
+        [
+          {
+            "node": "Buscar Canal del Area",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Estado Auto": {
+      "main": [
+        [
+          {
+            "node": "Buscar Canal del Area",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Canal del Area": {
+      "main": [
+        [
+          {
+            "node": "Notificar al Area",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar al Area": {
+      "main": [
+        [
+          {
+            "node": "Guardar Thread ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Thread ID": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error": {
+      "main": [
+        [
+          {
+            "node": "Notificar Error por Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar Error por Email": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "Triage Tickets Soporte - TP Final",
+  "meta": {
+    "instanceId": "gadisnow"
+  }
+}
